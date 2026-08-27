@@ -1,0 +1,801 @@
+/* ==========================================================================
+   EIRVÍK — "Millimetrinn"
+   Technical-drawing register. Light ground, ink line-work, colour only
+   from kitchen photography. Likova staircase/plan-engine transplant.
+   Full constant list documented in DESIGN.md.
+   ========================================================================== */
+
+/* ---------- fonts (self-hosted, no CDN) ---------- */
+@font-face {
+  font-family: 'Switzer';
+  src: url('fonts/Switzer-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('fonts/jetbrains-mono-v24-latin_latin-ext-300.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('fonts/jetbrains-mono-v24-latin_latin-ext-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('fonts/jetbrains-mono-v24-latin_latin-ext-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------- tokens ---------- */
+:root {
+  --ground: #F4F4F2;
+  --ink: #1B1B1B;
+  --rule: #DEDEDA;
+  --secondary: #6E6E6E;
+  --panel: #FFFFFF;
+
+  --font-display: 'Switzer', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --gutter: clamp(20px, 4vw, 60px);
+  --container-max: 1720px;
+
+  --ease-out: cubic-bezier(.25,.74,.22,.99);
+  --ease-in: cubic-bezier(.47,.04,.5,-.06);
+  --ease-in-out: cubic-bezier(.55,0,.1,1);
+  --ease-snap: cubic-bezier(.25,0,.35,1);
+
+  --dur-fast: .25s;
+  --dur-normal: .5s;
+  --dur-block: 2s;
+  --dur-title: .7s;
+  --dur-text: 1.2s;
+
+  --notch: 18px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { background: var(--ground); color-scheme: light; }
+/* clip, not hidden: hidden kills sticky descendants. NOT on <html>:
+   overflow-x:clip on the root breaks position:fixed in iOS WebViews
+   (in-app browsers) and the fixed header detaches to the page bottom. */
+html { max-width: 100%; }
+body { max-width: 100%; overflow-x: clip; }
+
+.skip-link {
+  position: fixed; top: -100px; left: 12px; z-index: 1000;
+  background: var(--ink); color: var(--ground);
+  padding: 12px 18px; font-size: 12px; letter-spacing: .04em;
+  transition: top var(--dur-fast) var(--ease-out);
+}
+.skip-link:focus { top: 12px; }
+
+h1, h2, h3 { text-wrap: balance; }
+
+a, button, .plan-module { touch-action: manipulation; }
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--ink); outline-offset: 3px;
+}
+/* dark-ground contexts need a light outline, not ink-on-ink */
+.mobile-nav a:focus-visible,
+.chapter--booking a:focus-visible,
+.chapter--booking button:focus-visible,
+.plan__readout a:focus-visible {
+  outline-color: var(--ground);
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+input, select, textarea { font: inherit; text-transform: uppercase; }
+
+.mono { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .02em; }
+.brandcase { text-transform: none; } /* bulthaup b1/b2/b3: official lowercase designations - the ONE exception, documented in DESIGN.md */
+
+/* Scroll-snap (the mobile-safe approximation of the Likova ±30svh gravity
+   well, DESIGN.md §Motion deviation 1) was removed after direct feedback —
+   `scroll-snap-type: y proximity` fought the user (jumpy, grabby) more than
+   it approximated a "well". The staircase clip-path reveal below carries the
+   full motion signature now; scrolling itself is native and untouched. */
+html { scroll-behavior: auto; }
+
+/* ---------- notched / bitten-corner motif ---------- */
+.notched,
+.btn--notched,
+.materials__item,
+.plan__readout,
+.process__step,
+.system__line {
+  clip-path: polygon(
+    0 0, calc(100% - var(--notch)) 0, 100% var(--notch),
+    100% 100%, var(--notch) 100%, 0 calc(100% - var(--notch))
+  );
+}
+
+/* ==========================================================================
+   PRELOADER
+   ========================================================================== */
+#preloader {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--ground);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 24px;
+  transition: opacity var(--dur-block) var(--ease-in-out), visibility 0s linear var(--dur-block);
+}
+#preloader.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.preloader__wordmark {
+  font-size: clamp(40px, 9vw, 120px);
+  font-weight: 450;
+  letter-spacing: -.01em;
+  line-height: 1;
+  transition: transform var(--dur-block) var(--ease-in-out), opacity var(--dur-normal) var(--ease-out);
+  transform-origin: center;
+}
+#preloader.is-hidden .preloader__wordmark { transform: scale(.18) translateY(-42vh); opacity: 0; }
+.preloader__count { font-family: var(--font-mono); font-size: 14px; color: var(--secondary); }
+#preloader.is-hidden .preloader__count { opacity: 0; transition: opacity var(--dur-fast) var(--ease-out); }
+
+/* ==========================================================================
+   HEADER — blend-mode-difference chrome
+   ========================================================================== */
+.site-header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+  /* max(inset, 6px): the notch inset on a real iPhone, and a floor everywhere
+     else so the burger never sits 2px off the top edge (Sindri: "sits very
+     highly"). env() alone reports 0 in browsers without a notch. */
+  padding-top: max(env(safe-area-inset-top), 6px);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  mix-blend-mode: difference;
+  transition: transform var(--dur-normal) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+@media (min-width:801px){ .site-header.is-hidden { transform: translateY(-100%); } }
+/* Likova's real device: blend-difference only over the hero image; once past
+   one viewport the header settles to solid ground + hairline (physics-chrome.md
+   §9). This also removes the mid-tone-photo low-contrast risk of pure difference
+   blend for nav legibility. */
+.site-header.is-solid {
+  mix-blend-mode: normal;
+  background: var(--ground);
+  border-bottom: 1px solid var(--rule);
+}
+.site-header.is-solid .site-header__inner,
+.site-header.is-solid .site-header__subnav { color: var(--ink); }
+.site-header.is-solid .site-header__toggle span { background: var(--ink); }
+/* ...but NOT while the menu is open: the panel behind is var(--ink) too, so
+   ink bars on an ink panel made the X invisible - the button looked like it
+   vanished on tap. Open state always wins, and blend is disabled so the
+   difference filter cannot eat it either. */
+.site-header:has(.mobile-nav.is-open) { mix-blend-mode: normal; }
+.site-header__toggle[aria-expanded="true"] span,
+.site-header.is-solid .site-header__toggle[aria-expanded="true"] span { background: var(--bone, #F4F4F2); }
+.site-header__inner {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px var(--gutter);
+  color: #fff;
+}
+.site-header__logo {
+  font-size: 18px; font-weight: 450; letter-spacing: .04em;
+}
+.site-header__nav {
+  /* superseded by .site-header__subnav (the scrollspy chip bar) — kept in
+     the DOM as a semantic link list for the mobile-nav's sibling markup
+     consistency, but not rendered, to avoid showing the same section links
+     twice in one header */
+  display: none;
+}
+.site-header__nav a { opacity: .85; transition: opacity var(--dur-fast) var(--ease-out); white-space: nowrap; }
+@media (hover: hover) and (pointer: fine) {
+  .site-header__nav a:hover { opacity: 1; }
+}
+.site-header__nav a:focus-visible,
+.btn:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.site-header__cta { border: 1px solid currentColor; padding: 8px 16px; }
+.site-header__toggle {
+  display: none; flex-direction: column; gap: 5px; width: 28px;
+  /* Centre the bars INSIDE the 44px tap box. Without this the box is centred
+     but its two bars stack at the top of it, so the burger reads ~16px higher
+     than the wordmark (Sindri: "sits very highly", "not centred at all"). */
+  justify-content: center; align-items: center;
+  /* The panel is a DESCENDANT of the header, so inside the header's own
+     stacking context its z-index:490 painted over this button and the menu
+     became impossible to close. Lift the button above its sibling. */
+  position: relative; z-index: 520;
+}
+/* burger -> X while open, so the close affordance is visible, not implied */
+.site-header__toggle[aria-expanded="true"] span:first-child { transform: translateY(3.25px) rotate(45deg); }
+.site-header__toggle[aria-expanded="true"] span:last-child  { transform: translateY(-3.25px) rotate(-45deg); }
+.site-header__toggle span { display: block; height: 1.5px; background: #fff; width: 100%; transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out); }
+
+/* ---------- section chip nav — the findability fix.
+   Constant bar: part of .site-header, so it inherits the same hide-on-
+   scroll-down behaviour as the logo row (desktop only, >800px — see the
+   .site-header.is-hidden rule above), and never hides below 801px, which
+   is exactly the "constant bar on mobile" requirement. Scrollspy active
+   state is driven by main.js via IntersectionObserver. ---------- */
+.site-header__subnav {
+  display: flex;
+  gap: 8px;
+  padding: 0 var(--gutter) 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  color: #fff;
+  /* A flex scroller drops its trailing padding once it scrolls, and any
+     programmatic scroll parks a chip flush against the edge with its left
+     border clipped. scroll-padding keeps the inset on both sides, and the
+     ::after spacer restores the right-hand gutter Safari discards. */
+  scroll-padding-inline: var(--gutter);
+}
+.site-header__subnav::after {
+  content: ""; flex: 0 0 var(--gutter); align-self: stretch;
+}
+.site-header__subnav::-webkit-scrollbar { display: none; }
+.section-nav__chip {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  padding: 9px 14px;
+  border: 1px solid currentColor;
+  opacity: .68;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  transition: opacity var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .section-nav__chip:hover { opacity: 1; }
+}
+.section-nav__chip.is-active { opacity: 1; background: var(--ink); color: var(--ground); }
+.site-header.is-solid .section-nav__chip.is-active { background: var(--ink); color: var(--ground); }
+
+.mobile-nav {
+  display: none;
+  position: fixed; inset: 0; z-index: 490;
+  background: var(--ink); color: #fff;
+  flex-direction: column; align-items: flex-start; justify-content: center;
+  gap: 22px; padding: 0 var(--gutter);
+  padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+  transform: translateY(-8px); opacity: 0; pointer-events: none;
+  overscroll-behavior: contain;
+  transition: opacity var(--dur-normal) var(--ease-out), transform var(--dur-normal) var(--ease-out);
+}
+.mobile-nav.is-open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.mobile-nav a { font-size: 28px; letter-spacing: .02em; }
+
+/* ==========================================================================
+   CHAPTER SHELL
+   ========================================================================== */
+.chapter {
+  position: relative;
+  padding: 120px var(--gutter);
+  max-width: var(--container-max);
+  margin: 0 auto;
+  scroll-margin-top: 132px; /* clears the two-row fixed header (~113-121px) with a hairline to spare */
+}
+.chapter--hero { padding: 0; max-width: none; }
+
+/* staircase reveal: chapters rise into view with a stepped clip-path curtain */
+@media (prefers-reduced-motion: no-preference) {
+  .chapter:not(.chapter--hero) {
+    clip-path: polygon(0 4%, 100% 0%, 100% 100%, 0% 96%);
+    opacity: 0;
+    transform: translateY(48px);
+    transition:
+      opacity var(--dur-text) var(--ease-out),
+      transform var(--dur-text) var(--ease-out),
+      clip-path var(--dur-text) var(--ease-out);
+  }
+  .chapter.is-in { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); opacity: 1; transform: translateY(0); }
+
+  /* card-grid stagger: each item trails the chapter's own reveal by a short,
+     increasing delay (emil-design-eng's stagger guidance). Scoped to cards that
+     exist in the static markup at load, NOT the JS-populated appliance grid --
+     gating visibility on a class a fetch() must add is exactly the "reveal
+     blocks an already-visible default" trap; the appliance chapter's own
+     .is-in fade (inherited from .chapter) is enough. */
+  .system__line, .materials__item, .process__step {
+    opacity: 0; transform: translateY(16px);
+    transition: opacity var(--dur-normal) var(--ease-out), transform var(--dur-normal) var(--ease-out);
+  }
+  .chapter.is-in .system__line,
+  .chapter.is-in .materials__item,
+  .chapter.is-in .process__step { opacity: 1; transform: translateY(0); }
+  .system__line:nth-child(1), .materials__item:nth-child(1), .process__step:nth-child(1) { transition-delay: 0ms; }
+  .system__line:nth-child(2), .materials__item:nth-child(2), .process__step:nth-child(2) { transition-delay: 60ms; }
+  .system__line:nth-child(3), .materials__item:nth-child(3), .process__step:nth-child(3) { transition-delay: 120ms; }
+  .materials__item:nth-child(4), .process__step:nth-child(4) { transition-delay: 180ms; }
+}
+
+/* ==========================================================================
+   HERO
+   ========================================================================== */
+.chapter--hero { min-height: 100svh; display: flex; flex-direction: column; justify-content: flex-end; z-index: 0; }
+.hero__media { position: absolute; inset: 0; z-index: 0; }
+.hero__grid, .hero__stats { position: relative; z-index: 1; }
+.hero__media img { width: 100%; height: 100%; object-fit: cover; }
+.hero__scrim {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(100deg, rgba(244,244,242,.98) 0%, rgba(244,244,242,.9) 34%, rgba(244,244,242,.42) 56%, rgba(244,244,242,0) 74%),
+    linear-gradient(180deg, rgba(27,27,27,.12) 0%, transparent 26%, rgba(244,244,242,.96) 97%);
+}
+.hero__grid {
+  position: relative;
+  padding: 0 var(--gutter) 48px;
+  max-width: 1200px;
+}
+.hero__eyebrow { font-size: 12px; color: var(--ink); margin: 0 0 18px; letter-spacing: .08em; }
+.hero__title {
+  font-size: clamp(40px, 6.6vw, 96px);
+  font-weight: 450;
+  line-height: 1.06;
+  letter-spacing: -.01em;
+  margin: 0 0 20px;
+  max-width: 16ch;
+}
+.hero__lede { font-size: clamp(15px, 1.6vw, 19px); max-width: 46ch; margin: 0 0 32px; color: var(--ink); }
+.hero__actions { display: flex; gap: 14px; flex-wrap: wrap; }
+.hero__stats {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--rule);
+  padding: 22px var(--gutter) 34px;
+}
+.hero__stat { display: flex; flex-direction: column; gap: 6px; }
+.hero__stat-figure { font-size: clamp(28px, 4vw, 52px); font-weight: 300; line-height: 1; }
+.hero__stat-label { font-size: 11px; color: var(--secondary); line-height: 1.4; }
+
+/* ==========================================================================
+   BUTTONS
+   ========================================================================== */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 15px 28px;
+  font-size: 12px; letter-spacing: .06em;
+  font-family: var(--font-display);
+  transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  border: 1px solid var(--ink);
+}
+.btn:active { transform: scale(.97); }
+.btn--dark { background: var(--ink); color: var(--ground); }
+.btn--ghost { background: transparent; color: var(--ink); }
+@media (hover: hover) and (pointer: fine) {
+  .btn--dark:hover { background: #000; }
+  .btn--ghost:hover { background: var(--ink); color: var(--ground); }
+}
+
+/* ==========================================================================
+   SYSTEM CHAPTERS (bulthaup / Häcker)
+   ========================================================================== */
+.system__frame {
+  display: grid; grid-template-columns: .85fr 1.15fr;
+  gap: clamp(24px, 4vw, 64px);
+  align-items: center;
+  margin-bottom: clamp(48px, 6vw, 88px);
+}
+.system__frame--reverse { grid-template-columns: 1.15fr .85fr; }
+.system__frame--reverse .system__statement { order: 2; }
+.system__frame--reverse .system__image { order: 1; }
+.system__kicker { font-size: 12px; color: var(--secondary); margin: 0 0 14px; }
+.system__title { font-size: clamp(40px, 6vw, 76px); font-weight: 450; line-height: 1.08; margin: 0 0 20px; }
+.system__body { font-size: 14px; line-height: 1.7; color: var(--ink); max-width: 42ch; }
+.system__image img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; }
+
+.system__lines {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: clamp(16px, 2.4vw, 28px);
+}
+.system__line { background: var(--panel); border: 1px solid var(--rule); padding: 0 0 20px; }
+.system__line-media { aspect-ratio: 3 / 4; overflow: hidden; }
+.system__line-media img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--dur-block) var(--ease-out); }
+@media (hover: hover) and (pointer: fine) {
+  .system__line:hover .system__line-media img { transform: scale(1.04); }
+}
+.system__line-code { font-size: 13px; padding: 16px 18px 6px; color: var(--ink); }
+.system__line-desc { font-size: 12.5px; line-height: 1.6; padding: 0 18px; color: var(--secondary); }
+
+/* ==========================================================================
+   PLAN SELECTOR — the hero device
+   ========================================================================== */
+.chapter--plan { padding-top: 100px; }
+.plan__head { max-width: 900px; margin-bottom: 48px; }
+.plan__kicker { font-size: 12px; color: var(--secondary); margin: 0 0 16px; }
+.plan__title { font-size: clamp(32px, 5vw, 60px); font-weight: 450; line-height: 1.1; margin: 0 0 20px; }
+.plan__body { font-size: 14px; line-height: 1.7; max-width: 56ch; color: var(--ink); }
+
+.plan__stage {
+  display: grid; grid-template-columns: 1fr 380px;
+  gap: 32px; align-items: start;
+}
+.plan__svg-wrap {
+  background: var(--panel); border: 1px solid var(--rule);
+  padding: clamp(16px, 3vw, 40px);
+}
+.plan__svg { width: 100%; height: auto; display: block; }
+
+.plan-floor, .plan-ceiling { stroke: var(--rule); stroke-width: 1.5; }
+.plan-worktop { stroke: var(--ink); stroke-width: 2; }
+.plan-shape {
+  fill: rgba(27,27,27,.02);
+  stroke: var(--ink); stroke-width: 1.5;
+  transition: fill var(--dur-fast) var(--ease-out), stroke-width var(--dur-fast) var(--ease-out);
+}
+.plan-shape--static { pointer-events: none; }
+.plan-detail { stroke: var(--ink); stroke-width: 1; opacity: .55; }
+.plan-detail--faint { opacity: .28; stroke-dasharray: 3 4; }
+/* joinery/detail line-work: reveal gaps and edge returns (barely-there,
+   read on a close look), etch marks for pulls/grilles/controls (a touch
+   more present, still same ink, no colour) */
+.plan-detail--reveal { stroke-width: .75; opacity: .22; }
+.plan-detail--etch { stroke-width: .75; opacity: .48; }
+.plan-detail-rect { fill: none; stroke: var(--ink); stroke-width: 1; opacity: .5; }
+.plan-detail-ring { fill: none; stroke: var(--ink); stroke-width: 1.4; opacity: .7; }
+.plan-detail-fill { fill: var(--ink); opacity: .7; }
+.plan-dim-line { stroke: var(--secondary); stroke-width: 1; }
+.plan-dims text { font-size: 36px; fill: var(--secondary); font-family: var(--font-mono); }
+
+.plan-module { cursor: pointer; }
+.plan-module:hover .plan-shape,
+.plan-module.is-active .plan-shape { fill: rgba(27,27,27,.16); stroke-width: 3; }
+.plan-module:focus-visible .plan-shape { fill: rgba(27,27,27,.12); stroke-width: 2.5; }
+.plan-module { outline: none; }
+
+.plan__readout {
+  background: var(--ink); color: var(--ground);
+  padding: 28px; min-height: 420px;
+  display: flex; flex-direction: column;
+  position: sticky; top: 120px;
+}
+.plan__readout-hint { font-size: 12px; color: rgba(244,244,242,.6); margin: 0 0 16px; }
+.plan__readout-empty-text { font-size: 13px; line-height: 1.7; color: rgba(244,244,242,.85); }
+.plan__readout-detail { display: flex; flex-direction: column; gap: 14px; }
+.plan__readout-photo { aspect-ratio: 4 / 3; overflow: hidden; background: rgba(244,244,242,.08); }
+.plan__readout-photo img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur-normal) var(--ease-out); }
+.plan__readout-photo img.is-loaded { opacity: 1; }
+.plan__readout-system { font-size: 11px; color: rgba(244,244,242,.6); }
+.plan__readout-name { font-size: 20px; font-weight: 450; margin: 0; line-height: 1.25; }
+.plan__readout-note { font-size: 12.5px; line-height: 1.6; color: rgba(244,244,242,.8); margin: 0; }
+.plan__readout-dims { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; border-top: 1px solid rgba(244,244,242,.2); padding-top: 14px; }
+.plan__readout-dims span { display: block; font-size: 22px; font-weight: 300; }
+.plan__readout-price { font-size: 13px; margin-top: auto; padding-top: 14px; }
+
+/* ==========================================================================
+   MATERIALS
+   ========================================================================== */
+.materials__head { max-width: 700px; margin-bottom: 40px; }
+.materials__kicker { font-size: 12px; color: var(--secondary); margin: 0 0 16px; }
+.materials__title { font-size: clamp(32px, 5vw, 56px); font-weight: 450; margin: 0 0 16px; }
+.materials__body { font-size: 14px; line-height: 1.7; color: var(--secondary); max-width: 52ch; }
+.materials__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(14px, 2vw, 24px); }
+.materials__item { margin: 0; background: var(--panel); border: 1px solid var(--rule); }
+.materials__item img { width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; }
+.materials__item figcaption { padding: 16px 18px 20px; font-size: 12px; line-height: 1.5; color: var(--secondary); display: flex; flex-direction: column; gap: 6px; }
+.materials__item figcaption .mono { color: var(--ink); font-size: 13px; }
+
+/* ==========================================================================
+   MIELE APPLIANCE WALL
+   ========================================================================== */
+.appliances__head { max-width: 760px; margin-bottom: 44px; }
+.appliances__kicker { font-size: 12px; color: var(--secondary); margin: 0 0 16px; }
+.appliances__title { font-size: clamp(28px, 4.6vw, 48px); font-weight: 450; margin: 0 0 16px; line-height: 1.15; }
+.appliances__body { font-size: 13.5px; line-height: 1.7; color: var(--secondary); max-width: 56ch; }
+/* grouped rows, not a uniform card grid: the category label + count is the
+   findability device, the row is a compact spec line (image, true-case
+   name + SKU, dims, price right-aligned) rather than a repeated card shape */
+.appliances__grid { display: flex; flex-direction: column; gap: clamp(32px, 4.5vw, 52px); }
+.appliance-group { border-top: 1px solid var(--ink); }
+.appliance-group__head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 14px 0 12px;
+}
+.appliance-group__label { font-size: 13px; letter-spacing: .08em; margin: 0; }
+.appliance-group__count { font-size: 11px; color: var(--secondary); }
+.appliance-group__rows { display: flex; flex-direction: column; }
+.appliance-row {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 16px;
+  padding: 14px 0; border-top: 1px solid var(--rule);
+}
+@media (hover: hover) and (pointer: fine) {
+  .appliance-row:hover { background: rgba(27,27,27,.025); }
+}
+.appliance-row__media {
+  flex: 0 0 60px; width: 60px; height: 60px;
+  background: #fff; border: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: center; padding: 8px;
+}
+.appliance-row__media img { width: 100%; height: 100%; object-fit: contain; }
+.appliance-row__info { flex: 1 1 220px; min-width: 180px; display: flex; flex-direction: column; gap: 4px; }
+/* margin:0 on every spec paragraph below: flex items never collapse margins
+   with each other, so a stray default <p> margin (1em, based on that
+   element's OWN font-size) stacks on top of the flex `gap` instead of
+   merging with it -- the exact bug that made each row read as loose,
+   inconsistently-spaced fragments rather than one compact spec line. */
+.appliance-row__name { font-size: 13px; line-height: 1.4; text-transform: none; /* real API product names keep their true casing */ font-family: var(--font-mono); margin: 0; }
+.appliance-row__sku { font-size: 11px; color: var(--secondary); margin: 0; }
+.appliance-row__meta { display: flex; align-items: center; gap: 20px; margin-left: auto; flex-wrap: wrap; }
+.appliance-row__dims { font-size: 11.5px; color: var(--secondary); white-space: nowrap; margin: 0; }
+.appliance-row__price { font-size: 13px; text-align: right; min-width: 108px; white-space: nowrap; margin: 0; }
+.appliance-row__price[data-enquiry="true"] { color: var(--secondary); }
+
+/* ==========================================================================
+   PROCESS
+   ========================================================================== */
+.process__head { margin-bottom: 48px; }
+.process__kicker { font-size: 12px; color: var(--secondary); margin: 0 0 16px; }
+.process__title { font-size: clamp(32px, 5vw, 56px); font-weight: 450; margin: 0; }
+.process__steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(16px, 2vw, 24px); }
+.process__step { background: var(--panel); border: 1px solid var(--rule); padding: 28px 22px 24px; }
+.process__number { display: block; font-size: clamp(40px, 5vw, 64px); font-weight: 300; color: var(--rule); margin-bottom: 18px; line-height: 1; }
+.process__step-title { font-size: 16px; font-weight: 450; margin: 0 0 10px; }
+.process__step-body { font-size: 12.5px; line-height: 1.65; color: var(--secondary); text-transform: none; }
+
+/* ==========================================================================
+   BOOKING
+   ========================================================================== */
+.chapter--booking { background: var(--ink); color: var(--ground); max-width: none; }
+.chapter--booking .booking__frame { max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: .9fr 1.1fr; gap: clamp(32px, 5vw, 80px); }
+.booking__kicker { font-size: 12px; color: rgba(244,244,242,.6); margin: 0 0 16px; }
+.booking__title { font-size: clamp(28px, 4.4vw, 46px); font-weight: 450; line-height: 1.15; margin: 0 0 18px; max-width: 16ch; }
+.booking__body { font-size: 14px; line-height: 1.7; color: rgba(244,244,242,.8); max-width: 44ch; }
+
+.booking__form { display: flex; flex-direction: column; gap: 18px; }
+.form-row { display: flex; flex-direction: column; gap: 8px; }
+.form-row--split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.form-row--split > div { display: flex; flex-direction: column; gap: 8px; }
+label { font-size: 11px; letter-spacing: .06em; color: rgba(244,244,242,.7); }
+input, select, textarea {
+  background: transparent; border: 1px solid rgba(244,244,242,.35); color: var(--ground);
+  padding: 13px 14px; font-size: 14px;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+input::placeholder, textarea::placeholder { color: rgba(244,244,242,.4); text-transform: none; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--ground); }
+select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 20px) center, calc(100% - 14px) center; background-size: 6px 6px; background-repeat: no-repeat; }
+textarea { resize: vertical; text-transform: none; }
+.booking__submit { align-self: flex-start; margin-top: 6px; border-color: var(--ground); background: var(--ground); color: var(--ink); }
+@media (hover: hover) and (pointer: fine) {
+  .booking__submit:hover { background: #fff; }
+}
+.booking__submit:active { transform: scale(.97); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--ground); outline-offset: 2px; }
+.booking__note { font-size: 11px; color: rgba(244,244,242,.5); text-transform: none; line-height: 1.5; }
+.booking__confirm { padding: 40px 0; }
+.booking__confirm .mono { font-size: 13px; color: rgba(244,244,242,.6); margin-bottom: 10px; }
+.booking__confirm p:last-child { font-size: 20px; line-height: 1.5; max-width: 32ch; text-transform: none; }
+
+/* ==========================================================================
+   LOCATION / FOOTER
+   ========================================================================== */
+.location__frame {
+  display: grid; grid-template-columns: 1.2fr 1fr .9fr;
+  gap: clamp(14px, 2vw, 20px); margin-bottom: 60px;
+}
+.location__media img { width: 100%; height: 100%; object-fit: cover; aspect-ratio: 4/3; }
+.location__info { display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+.location__title { font-size: clamp(26px, 3.6vw, 40px); font-weight: 450; margin: 0; line-height: 1.15; }
+.location__hours { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.location__hours > div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--rule); padding-bottom: 6px; }
+.location__hours dt { color: var(--secondary); font-weight: 400; }
+.location__hours dd { margin: 0; }
+.location__contact { display: flex; flex-direction: column; gap: 4px; font-family: var(--font-mono); font-size: 15px; text-transform: none; }
+
+.site-footer { border-top: 1px solid var(--rule); padding-top: 24px; display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.site-footer p { font-size: 11px; color: var(--secondary); margin: 0; }
+.site-footer__note { text-transform: none; }
+
+/* ==========================================================================
+   RESPONSIVE — real layouts, not a device gate
+   ========================================================================== */
+@media (max-width: 1080px) {
+  .system__frame, .system__frame--reverse { grid-template-columns: 1fr; }
+  .system__frame--reverse .system__statement,
+  .system__frame--reverse .system__image { order: initial; }
+  .system__lines { grid-template-columns: repeat(2, 1fr); }
+  .plan__stage { grid-template-columns: 1fr; }
+  .plan__readout { position: static; min-height: 0; }
+  .materials__grid { grid-template-columns: repeat(2, 1fr); }
+  .process__steps { grid-template-columns: repeat(2, 1fr); }
+  .chapter--booking .booking__frame { grid-template-columns: 1fr; }
+  .location__frame { grid-template-columns: 1fr 1fr; }
+  .location__info { grid-column: 1 / -1; }
+}
+
+@media (max-width: 720px) {
+  .chapter { padding: 72px var(--gutter); }
+  .site-header__toggle { display: flex; }
+  .mobile-nav { display: flex; }
+  /* constant-bar rule: the chip nav stays visible and reachable on mobile —
+     bump chips to a real 44px tap target here rather than the compact
+     desktop size */
+  .site-header__subnav { padding-bottom: 12px; gap: 6px; }
+  .section-nav__chip { padding: 12px 12px; min-height: 44px; display: inline-flex; align-items: center; }
+  /* the fixed header grew a second row (the chip nav) — reserve real
+     clearance so the hero's flex-end content can never render under it */
+  .chapter--hero { padding-top: 150px; }
+  .hero__stats { grid-template-columns: 1fr; gap: 18px; }
+  .hero__actions { flex-direction: column; align-items: stretch; }
+  .system__lines { grid-template-columns: 1fr; }
+  .materials__grid { grid-template-columns: 1fr; }
+  .process__steps { grid-template-columns: 1fr; }
+  .form-row--split { grid-template-columns: 1fr; }
+  .location__frame { grid-template-columns: 1fr; }
+  .location__media--secondary { display: none; }
+  .plan__svg-wrap { padding: 14px; }
+  .appliance-row__meta { margin-left: 0; width: 100%; justify-content: space-between; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  .chapter { opacity: 1 !important; transform: none !important; clip-path: none !important; }
+}
+/* SNDR prototype credit (footer gate) */
+.sndr-credit{font-family:var(--font-mono);font-size:11px;letter-spacing:.02em;line-height:1.7;color:var(--secondary);max-width:64ch;margin-top:18px;text-transform:none;}
+.sndr-credit a{color:var(--ink);border-bottom:1px solid var(--rule);}
+
+/* the hidden attribute must win over component display rules */
+[hidden]{ display: none !important; }
+/* thumb targets: header logo + menu toggle */
+.site-header__logo{ display:inline-flex; align-items:center; min-height:44px; }
+.site-header__toggle{ min-height:44px; min-width:44px; }
+
+/* thumb targets: tel/mailto links in the location block */
+.location__contact a { display: inline-block; padding-block: 12px; }
+
+/* ================= Mobile corrections (2026-08-25, phone audit) =================
+   Measured at 390x844: the two-row header stood 140px tall (17% of the screen),
+   the plan drawing rendered 320px wide with 8px dimension text (its own
+   signature device, unreadable), and the Miele rows showed 42px thumbnails. */
+@media (max-width: 768px) {
+  /* 1. Slimmer chrome: shorter logo row, tighter chips. ~140px -> ~104px */
+  .site-header__inner { height: 52px; padding-top: 4px; padding-bottom: 4px; }
+  .site-header__logo { font-size: 15px; }
+  /* keep the horizontal gutter: padding:6px 0 clipped the first chip's left border */
+  .site-header__subnav { padding: 6px var(--gutter); gap: 6px; }
+  .section-nav__chip { font-size: 11px; padding: 7px 10px; }
+  [id] { scroll-margin-top: 112px; }
+
+  /* 2. (superseded — the plan device's mobile treatment, formerly a pannable
+     760px canvas plus a swipe hint, is now the row-accordion block at the
+     end of this file. Panning a drawing to find tap targets was the wrong
+     model on a phone: see the 2026-08-27 "one interaction" rewrite below.) */
+
+  /* 3. Product rows: a real look at the appliance, not a 42px chip */
+  .appliance-row__media { width: 92px; height: 92px; flex: 0 0 92px; }
+
+  /* 4. Close the dead gap under the plan readout (superseded by the single-
+     frame treatment below, which sets gap:0 and draws its own border) */
+  .chapter--plan { padding-block: 36px 44px; }
+}
+
+/* ================= Mobile corrections round 2 (2026-08-27, "border controlled") =================
+   Direct feedback on a real iPhone: "more border controlled... confusing on
+   mobile". Root causes found by stepping the page in 700px increments and
+   reading every frame: (1) every chapter after the hero started with zero
+   hairline or eyebrow -- the visitor fell through blank ground into a new
+   topic with no signal a chapter had changed; (2) the plan device split into
+   three unbordered fragments (pan hint, drawing, chip list, readout) instead
+   of reading as one control; (3) every appliance-row spec line (name / sku /
+   dims / price) is a bare <p> with no margin reset, and because flex items
+   never collapse margins with siblings, each row's own default 1em margins
+   stacked on top of the 16-20px flex gap -- rows read as loose, wildly
+   uneven fragments instead of one compact line. Fixed at the root (margin
+   resets in the component rules above) rather than papered over here. */
+@media (max-width: 768px) {
+  /* 1. Section boundaries: a hairline rule at the top of every mid-page
+     chapter, so the chapter change is legible even before its own heading
+     has scrolled into view. Hero (full-bleed photo) and booking/location
+     (already colour- or photo-bounded) don't need it. */
+  .chapter:not(.chapter--hero):not(.chapter--booking):not(.chapter--location) {
+    border-top: 1px solid var(--rule);
+  }
+
+  /* 2. (superseded — see the plan row-accordion block at the end of this
+     file, which now owns the single bordered frame for the plan device.) */
+}
+
+/* ================= Plan mobile redesign (2026-08-27): one interaction =================
+   Direct feedback on a real iPhone: "this entire section bugs me... confusing
+   and weird." Root cause: three competing control surfaces stacked on top of
+   each other (a swipe hint, a 760px pannable SVG, a separate chip list, a
+   detached dark readout) — a visitor couldn't tell what to touch or how the
+   pieces related. Hovering the drawing is the desktop concept (the line
+   drawing becomes the photograph); hovering doesn't exist on touch, so
+   panning a drawing to find tap targets was the wrong model, not a sizing
+   problem. Replaced with ONE surface: the drawing stays as a fitted,
+   read-only diagram (visual anchor, not a control — width:100% from the
+   base rule, no pan), and the ten modules become a single bordered list of
+   rows that expand in place to the real photo + specs. Same PLAN_ITEMS
+   data, same show()/clear() engine (main.js buildRows()) — only the mobile
+   input surface changed. Desktop (>900px) hover-the-drawing is untouched. */
+.plan__rows { display: none; } /* built unconditionally by main.js; desktop stays hover-only */
+@media (max-width: 900px) {
+  /* the drawing reads as a diagram here, not a control — no direct tap
+     targets on its thin shapes; the rows below are the one way in, and
+     show()/clear() still light up the matching shape as a tie-back */
+  .plan-module { pointer-events: none; }
+  /* the "600 MM" callouts were the unreadable device the old pan mode
+     existed to rescue; at a fitted mobile width they run sub-6px and are
+     redundant with the real mm figures now in the row list — hide the
+     text, keep the faint extension lines as diagram detail */
+  .plan-dims text { display: none; }
+
+  /* the desktop-only dark readout has no detached home on mobile any more —
+     each row carries its own answer inline, right where it was opened */
+  .plan__readout { display: none; }
+
+  /* one bordered, notched frame for the whole device: drawing on top, rows
+     below, a single hairline divider between them instead of separately-
+     bordered fragments floating in sequence */
+  .plan__stage {
+    display: block; border: 1px solid var(--rule); background: var(--panel);
+    clip-path: polygon(0 0, calc(100% - var(--notch)) 0, 100% var(--notch), 100% 100%, var(--notch) 100%, 0 calc(100% - var(--notch)));
+  }
+  .plan__svg-wrap { border: none; border-bottom: 1px solid var(--rule); }
+
+  .plan__rows { display: block; }
+  .plan__row { border-bottom: 1px solid var(--rule); }
+  .plan__row:last-child { border-bottom: 0; }
+
+  .plan__row-trigger {
+    width: 100%; display: flex; align-items: flex-start; gap: 14px;
+    padding: 16px; text-align: left; min-height: 60px;
+    background: var(--panel); color: var(--ink); border: 0;
+    /* buttons get a UA-stylesheet text-transform:none that blocks the page's
+       uppercase register from inheriting (the same fix .plan__chip needed) */
+    text-transform: uppercase;
+    transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+  .plan__row-trigger:focus-visible { outline-offset: -3px; }
+  .plan__row-index { flex: 0 0 auto; font-family: var(--font-mono); font-weight: 300; font-size: 19px; color: var(--secondary); line-height: 1.3; }
+  .plan__row-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+  .plan__row-name { font-size: 13.5px; line-height: 1.4; }
+  .plan__row-sub { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--secondary); }
+  .plan__row-icon {
+    flex: 0 0 auto; position: relative; width: 16px; height: 16px; margin-top: 3px;
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+  .plan__row-icon::before, .plan__row-icon::after {
+    content: ""; position: absolute; top: 50%; left: 50%; background: currentColor;
+    transform: translate(-50%, -50%);
+  }
+  .plan__row-icon::before { width: 100%; height: 1.5px; }
+  .plan__row-icon::after { width: 1.5px; height: 100%; }
+  .plan__row-trigger[aria-expanded="true"] .plan__row-icon { transform: rotate(45deg); }
+
+  /* selected state: ink-invert, the same "chosen" language already used by
+     the section chip nav — no new colour, no shadow */
+  .plan__row-trigger[aria-expanded="true"] { background: var(--ink); color: var(--ground); }
+  .plan__row-trigger[aria-expanded="true"] .plan__row-index,
+  .plan__row-trigger[aria-expanded="true"] .plan__row-sub { color: rgba(244,244,242,.7); }
+  .plan__row-trigger[aria-expanded="true"]:focus-visible { outline-color: var(--ground); }
+
+  /* the panel: the payoff moment, right where you tapped rather than
+     somewhere else on the screen */
+  .plan__row-panel { background: var(--ink); color: var(--ground); padding: 0 16px 20px; }
+  .plan__row-photo { aspect-ratio: 4 / 3; overflow: hidden; margin: 0 -16px 14px; background: rgba(244,244,242,.08); }
+  .plan__row-photo img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur-normal) var(--ease-out); }
+  .plan__row-photo img.is-loaded { opacity: 1; }
+  .plan__row-note { font-size: 12px; line-height: 1.6; color: rgba(244,244,242,.85); margin: 0 0 14px; }
+  .plan__row-fulldims { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12.5px; border-top: 1px solid rgba(244,244,242,.2); padding-top: 12px; margin-bottom: 10px; }
+  .plan__row-fulldims span { display: block; font-size: 20px; font-weight: 300; }
+  .plan__row-price { font-size: 12.5px; margin: 0; }
+}

@@ -1,0 +1,164 @@
+[
+  {
+    "sku": "PWM912 EL DV DD",
+    "name": "Professional þvottavél 12kg með affallsventli",
+    "manufacturer": "Miele",
+    "price": 0.0,
+    "hidePrice": true,
+    "enquiryOnly": true,
+    "totalInventoryCount": 1,
+    "isInStock": false,
+    "dims_raw": {
+      "Hæð": "135 cm",
+      "Breidd": "79,9 cm",
+      "Dýpt": "92,4 cm"
+    },
+    "thumbnail": "https://shop-eirvik.sendiradid.is/image/cache/catalog/PWM-912%20(1)-500x500.jpg",
+    "localImage": "assets/products/PWM912ELDVDD.jpg",
+    "dims_mm": {
+      "width": 799,
+      "height": 1350,
+      "depth": 924
+    }
+  },
+  {
+    "sku": "KM6520FR",
+    "name": "Keramikhelluborð með stálkanti",
+    "manufacturer": "Miele",
+    "price": 149990.0,
+    "hidePrice": false,
+    "enquiryOnly": false,
+    "totalInventoryCount": 0,
+    "isInStock": false,
+    "dims_raw": {
+      "Breidd": "ca 60 cm"
+    },
+    "thumbnail": "https://shop-eirvik.sendiradid.is/image/cache/catalog/V%C3%B6rur/Heimilist%C3%A6ki/Hellubor%C3%B0/Miele/Keramik/KM6520FR-500x500.jpg",
+    "localImage": "assets/products/KM6520FR.jpg",
+    "dims_mm": {
+      "width": 600
+    }
+  },
+  {
+    "sku": "M6012SCR",
+    "name": "Örbylgjuofn með Quartz grilli - EasyControl",
+    "manufacturer": "Miele",
+    "price": 149990.0,
+    "hidePrice": false,
+    "enquiryOnly": true,
+    "totalInventoryCount": 0,
+    "isInStock": false,
+    "dims_raw": {
+      "Hæð": "30,5 cm",
+      "Breidd": "52,0 cm",
+      "Dýpt": "42,2 cm"
+    },
+    "thumbnail": "https://shop-eirvik.sendiradid.is/image/cache/catalog/V%C3%B6rur/Heimilist%C3%A6ki/Ofnar/Miele/Mirco/M6012SC-500x500.jpg",
+    "localImage": "assets/products/M6012SCR.jpg",
+    "dims_mm": {
+      "width": 520,
+      "height": 305,
+      "depth": 422
+    }
+  },
+  {
+    "sku": "DAH2660S",
+    "name": "Veggháfur - Escala",
+    "manufacturer": "Miele",
+    "price": 309990.0,
+    "hidePrice": false,
+    "enquiryOnly": true,
+    "totalInventoryCount": 0,
+    "isInStock": false,
+    "dims_raw": {
+      "Breidd": "ca 60 cm",
+      "Hæð": "44,3 cm",
+      "Dýpt": "38,8 cm"
+    },
+    "thumbnail": "https://shop-eirvik.sendiradid.is/image/cache/catalog/V%C3%B6rur/Heimilist%C3%A6ki/H%C3%A1far%20og%20viftur/Miele/DAH%202660/DAH2660S%20miele%20veggh%C3%A1fur%201-500x500.jpg",
+    "localImage": "assets/products/DAH2660S.jpg",
+    "dims_mm": {
+      "width": 600,
+      "height": 443,
+      "depth": 388
+    }
+  },
+  {
+    "sku": "KS4383DDWEISS",
+    "name": "Kæliskápur með DailyFresh",
+    "manufacturer": "Miele",
+    "price": 364850.0,
+    "hidePrice": false,
+    "enquiryOnly": true,
+    "totalInventoryCount": 0,
+    "isInStock": false,
+    "dims_raw": {
+      "Hæð": "185 cm",
+      "Breidd": "60 cm",
+      "Hæð - Tækjamál": "185,5 cm",
+      "Breidd - Tækjamál": "59,7 cm",
+      "Dýpt - Tækjamál": "67,5 cm"
+    },
+    "thumbnail": "https://shop-eirvik.sendiradid.is/image/cache/catalog/V%C3%B6rur/Heimilist%C3%A6ki/k%C3%A6li-%20og%20frystisk%C3%A1par/Miele/KS%204383%20DD/KS4383DD%20hv%C3%ADtur%20Miele%20k%C3%A6lisk%C3%A1pur%201-500x500.jpg",
+    "localImage": "assets/products/KS4383DDWEISS.jpg",
+    "dims_mm": {
+      "width": 600,
+      "height": 1850,
+      "depth": 675
+    }
+  },
+  {
+    "sku": "KWT7112IGS",
+    "name": "Innbyggður vínkæliskápur, 18 Bordeaux",
+    "manufacturer": "Miele",
+    "price": 789990.0,
+    "hidePrice": false,
+    "enquiryOnly": true,
+    "totalInventoryCount": 0,
+    "isInStock": false,
+    "dims_raw": {
+      "Hæð": "45 cm",
+      "Breidd": "56 cm"
+    },
+    "thumbnail": "https://shop-eirvik.sendiradid.is/image/cache/catalog/V%C3%B6rur/Heimilist%C3%A6ki/v%C3%ADnk%C3%A6lisk%C3%A1par/Miele/KWT%207112%20iG%20S-500x500.jpg",
+    "localImage": "assets/products/KWT7112IGS.jpg",
+    "dims_mm": {
+      "width": 560,
+      "height": 450
+    }
+  },
+  {
+    "sku": "G5050SCVI",
+    "name": "Uppþvottavél - 100% innbyggð",
+    "manufacturer": "Miele",
+    "price": 269990.0,
+    "hidePrice": false,
+    "enquiryOnly": false,
+    "totalInventoryCount": 0,
+    "isInStock": false,
+    "dims_raw": {
+      "Hæð": "80,5 cm",
+      "Breidd": "60 cm"
+    },
+    "thumbnail": "https://shop-eirvik.sendiradid.is/image/cache/catalog/V%C3%B6rur/Heimilist%C3%A6ki/Upp%C3%BEvottav%C3%A9lar/Miele/G5050-G5055/G5050SCVi-500x500.jpg",
+    "localImage": "assets/products/G5050SCVI.jpg",
+    "dims_mm": {
+      "width": 600,
+      "height": 805
+    }
+  },
+  {
+    "sku": "HAD 00165",
+    "name": "Slanga fyrir bjór 3/8\" - metraverð",
+    "manufacturer": null,
+    "price": 390.0,
+    "hidePrice": false,
+    "enquiryOnly": false,
+    "totalInventoryCount": 15,
+    "isInStock": false,
+    "dims_raw": {},
+    "thumbnail": "https://shop-eirvik.sendiradid.is/image/cache/catalog/V%C3%B6rur/X%20Beer/Lindr/Sl%C3%B6ngur/HAD00165-500x500.jpg",
+    "localImage": "assets/products/HAD00165.jpg",
+    "dims_mm": {}
+  }
+]
